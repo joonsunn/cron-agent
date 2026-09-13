@@ -1,0 +1,7 @@
+name: example
+schedule: "0 9 * * *"
+promptFile: prompts/example.md
+timezone: UTC
+timeoutMinutes: 10
+enabled: false
+notifyOnFailure: ""

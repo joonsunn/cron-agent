@@ -9,3 +9,5 @@ Mutable state lives here. Never write state next to code.
 - `logs/<job>/<runID>.log` raw output, gitignored.
 
 Copy `jobs/example.yaml` to a new file and set `enabled: true` to schedule real work.
+
+A fresh dir seeds itself on boot from templates in the binary. Seeding never overwrites your files.

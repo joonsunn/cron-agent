@@ -17,7 +17,7 @@ Use the root Makefile only. Do not call `go` or `pnpm` directly except to debug 
 - Server owns `apps/server` and SQLite. Web never touches the db.
 - Mutable state lives only under the data dir. Never write state next to code.
 - Job definitions are data, not code. Validate on load, fail open with a warning and skip the bad file.
-- Never commit `data/*.db`, `data/logs`, or secrets. Example job stays disabled.
+- Never commit runtime state under `data/` (only `data/README.md` is tracked) or secrets. Example job stays disabled.
 
 ## Style
 

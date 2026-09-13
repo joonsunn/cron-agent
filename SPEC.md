@@ -18,9 +18,9 @@ Go 1.23+, Node 20+, pnpm 9+.
 
 One Go binary owns the scheduling loop and the HTTP API. The process starts both together and stops both together. No launchd, systemd, or cron entries are required.
 
-A React dashboard is served as static files by the Go binary in prod and by Vite dev server in local dev.
+A React dashboard is embedded in the Go binary in prod and served by Vite dev server in local dev.
 
-All mutable state lives in one data dir outside server code. Default `./data` for local dev, overridable by `--data` flag or `DATA_DIR` env. Server code stays read only.
+All mutable state lives in one data dir outside server code. Default `./data`, resolved relative to the directory the binary runs from, overridable by `--data` flag or `DATA_DIR` env. Server code stays read only.
 
 ## Job registration
 
@@ -47,6 +47,8 @@ Markdown holds live state the agent reads next. Location `<data>/memory/<job>/ST
 SQLite holds append-only history. Tables `jobs`, `runs`. A run records scheduled time, start, finish, exit code, output path, trigger source. History uses insert only, never update in place.
 
 `<data>/jobs` holds definitions. `<data>/memory` holds markdown. `<data>/cronagent.db` holds SQLite. `<data>/logs/<job>/<runID>.log` holds raw output. DB and logs are gitignored. Definitions and prompts can be versioned.
+
+A fresh data dir is seeded on boot from templates embedded in the binary: example job and prompt, permission pins, run law. Seeding never overwrites existing files, so a copied binary self-provisions a working setup anywhere.
 
 ## Scheduler semantics
 

@@ -8,14 +8,14 @@
 - `data/opencode.json` pins opencode permissions for runs. Tools inside the data dir are allowed, `external_directory`, `doom_loop`, and `question` are denied so approval needs fail fast instead of hanging a headless run. Job load warns when a prompt references absolute paths or parent traversal.
 - Cron parsing with `github.com/robfig/cron/v3`. SQLite driver is `modernc.org/sqlite` (pure Go, no cgo) to keep `make build` trivial on mac and linux.
 - Data dir lives at repo root `./data` for dev, outside `apps/server`. Override with `--data` or `DATA_DIR`. Never store state beside the binary.
-- Web ships as static files served by Go in prod. Vite dev server only for local UI work.
+- Web ships embedded in the Go binary in prod. Vite dev server only for local UI work.
 
 ## Data dir contract
 
-- `data/jobs/*.yaml` job definitions, safe to version.
-- `data/prompts/*.md` agent prompts referenced by jobs.
-- `data/opencode.json` permission pins for runs, versioned.
-- `data/AGENTS.md` run law for scheduled agents, versioned. Nearest AGENTS.md wins, so runs see this instead of the repo root file.
+- `data/jobs/*.yaml` job definitions, seeded with a disabled example on fresh boot.
+- `data/prompts/*.md` agent prompts referenced by jobs, seeded with an example on fresh boot.
+- `data/opencode.json` permission pins for runs, seeded on fresh boot and gitignored.
+- `data/AGENTS.md` run law for scheduled agents, seeded on fresh boot and gitignored. Nearest AGENTS.md wins, so runs see this instead of the repo root file.
 - `data/memory/<job>/STATUS.md` live markdown per job, max 40 lines.
 - `data/cronagent.db` SQLite runtime, gitignored.
 - `data/logs/<job>/<runID>.log` raw output, gitignored.
@@ -28,6 +28,7 @@
 - Job file adds and edits apply on the next 10s tick. No restart needed for job changes, restart only for server code changes.
 - Example job ships with `enabled: false` so setup never spends model calls.
 - Env file search is `--env` path, then `./.env`, then `.env` next to the binary. Only `DATA_DIR`, `PORT`, `API_TOKEN` load, exported env always wins.
+- Fresh data dirs seed from templates embedded in the binary. Seed sources live in `apps/server/internal/seed/seeddata`, the source of truth. Runtime files under `data/` are gitignored except `data/README.md`.
 
 ## Open items
 

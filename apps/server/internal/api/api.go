@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ type Server struct {
 	DataDir string
 	Token   string
 	WebDir  string
+	WebFS   fs.FS
 }
 
 func (s *Server) Routes() http.Handler {
@@ -191,6 +193,17 @@ func (s *Server) jobAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serveWeb(w http.ResponseWriter, r *http.Request) {
+	if s.WebFS != nil {
+		rel := strings.TrimPrefix(filepath.ToSlash(filepath.Clean("/"+r.URL.Path)), "/")
+		if rel == "" {
+			rel = "index.html"
+		}
+		if st, err := fs.Stat(s.WebFS, rel); err != nil || st.IsDir() {
+			rel = "index.html"
+		}
+		http.ServeFileFS(w, r, s.WebFS, rel)
+		return
+	}
 	if s.WebDir == "" {
 		http.NotFound(w, r)
 		return

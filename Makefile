@@ -22,7 +22,12 @@ dev:
 
 build:
 	pnpm --dir $(WEB_DIR) build
+	mkdir -p $(SERVER_DIR)/cmd/cron-agent/webdist
+	find $(SERVER_DIR)/cmd/cron-agent/webdist -mindepth 1 -not -name README.md -delete
+	cp -r $(WEB_DIR)/dist/. $(SERVER_DIR)/cmd/cron-agent/webdist/
 	cd $(SERVER_DIR) && go build -o ../../$(BIN) ./cmd/cron-agent
+	cp cron-agent.command $(BIN).command
+	chmod +x $(BIN).command
 
 run: build
 	./$(BIN) --data $(DATA_ABS) --port $(PORT)
@@ -32,4 +37,4 @@ test:
 	pnpm --dir $(WEB_DIR) typecheck
 
 clean:
-	rm -rf $(BIN) $(WEB_DIR)/dist
+	rm -rf $(BIN) $(BIN).command $(WEB_DIR)/dist

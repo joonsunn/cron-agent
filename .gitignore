@@ -4,10 +4,14 @@ data/logs/*
 data/jobs/*
 data/memory/*
 data/prompts/*
+data/AGENTS.md
+data/opencode.json
 .env
 apps/web/dist/
+apps/server/cmd/cron-agent/webdist/*
+!apps/server/cmd/cron-agent/webdist/README.md
 apps/web/node_modules/
 node_modules/
 bin/
-cron-agent
+/cron-agent
 .DS_Store

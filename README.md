@@ -2,7 +2,7 @@
 
 Recurring agent jobs on cron schedules, executed headlessly through `opencode`, with a small dashboard for health and history.
 
-One Go binary owns the scheduling loop and the HTTP API. No system daemons. All mutable state lives in `./data`, outside server code.
+One Go binary owns the scheduling loop and the HTTP API. No system daemons. All mutable state lives in `./data`, outside server code. Relative paths resolve from the directory you run the binary in, so start it from the directory that should hold state.
 
 ## Prerequisites
 
@@ -21,7 +21,7 @@ Open the dashboard at `http://localhost:5173`. The API runs on port 8080.
 The example job ships disabled, so setup spends no model calls. To schedule real work, copy `data/jobs/example.yaml` to a new file, point it at a prompt in `data/prompts`, and set `enabled: true`. Job files apply on the next 10s tick, no restart needed.
 
 ```sh
-make build   # web dashboard plus server binary at bin/cron-agent
+make build   # dashboard embedded plus server binary at bin/cron-agent
 make run     # serve the production build against ./data
 make test    # Go tests plus web typecheck
 ```
@@ -38,7 +38,7 @@ Headless runs cannot approve anything, and an `ask` permission hangs forever wai
 
 Copy `.env.example` to `.env` at the repo root for local dev. Only `DATA_DIR`, `PORT`, and `API_TOKEN` load. Precedence is make flags, then `.env`, then defaults. Never commit `.env`.
 
-For a shipped binary, place a `.env` next to the binary, or pass `--env <path>`. The binary also reads `./.env` from its working dir. Exported env vars always win.
+For a shipped binary, `cd` to the directory that should hold `data` and run it from the terminal, or pass `--data` with an absolute path. Double-clicking the binary on macOS starts it in your home folder, so state would land in `~/data`. To keep double-click working, copy `bin/cron-agent.command` next to the binary and open that instead. It cds to its own folder first, then execs the binary. The dashboard is embedded in the binary, so only `data` and `.env` live beside it. Place a `.env` next to the binary, or pass `--env <path>`. The binary also reads `./.env` from its working dir. Exported env vars always win.
 
 ## Layout
 
