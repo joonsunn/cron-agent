@@ -143,7 +143,14 @@ func (s *Server) runLog(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, rn := range runs {
 		if rn.ID == id {
-			http.ServeFile(w, r, rn.LogPath)
+			cand := rn.LogPath
+			if !filepath.IsAbs(cand) {
+				cand = filepath.Join(s.DataDir, cand)
+			}
+			if _, err := os.Stat(cand); err != nil {
+				cand = filepath.Join(s.DataDir, "logs", rn.Job, rn.ID+".log")
+			}
+			http.ServeFile(w, r, cand)
 			return
 		}
 	}

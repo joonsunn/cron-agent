@@ -12,10 +12,11 @@ import (
 type Config struct {
 	DataDir string
 	Port    int
+	Host    string
 	Token   string
 }
 
-func Resolve(dataDir string, port int) Config {
+func Resolve(dataDir string, port int, host string) Config {
 	if v := os.Getenv("DATA_DIR"); v != "" && dataDir == "./data" {
 		dataDir = v
 	}
@@ -24,7 +25,10 @@ func Resolve(dataDir string, port int) Config {
 			port = n
 		}
 	}
-	return Config{DataDir: dataDir, Port: port, Token: os.Getenv("API_TOKEN")}
+	if v := os.Getenv("HOST"); v != "" && host == "127.0.0.1" {
+		host = v
+	}
+	return Config{DataDir: dataDir, Port: port, Host: host, Token: os.Getenv("API_TOKEN")}
 }
 
 func CheckOpencode(ctx context.Context) error {

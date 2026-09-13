@@ -1,0 +1,32 @@
+name: cron-agent
+
+services:
+  cron-agent:
+    build: .
+    image: cron-agent:latest
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      DATA_DIR: /data
+      PORT: 8080
+      HOST: 0.0.0.0
+      API_TOKEN: ${API_TOKEN:-}
+      OPENCODE_API_KEY: ${OPENCODE_API_KEY:?set OPENCODE_API_KEY via export or repo .env (see README Docker section)}
+      HOME: /home/cronagent
+    volumes:
+      # Same ./data layout as `make dev`. Jobs go in ./data/jobs,
+      # prompts in ./data/prompts, seeded on first boot.
+      - ./data:/data
+      # Global opencode context, same files the bare binary reads.
+      # Config and dotfiles stay read-only, the auth dir stays writable
+      # so token refresh keeps working. dotfiles must ride along because
+      # ~/.config/opencode entries are symlinks into it.
+      - ${HOME}/.config/opencode:/home/cronagent/.config/opencode:ro
+      - ${HOME}/dotfiles:/home/cronagent/dotfiles:ro
+      - ${HOME}/.agents:/home/cronagent/.agents:ro
+      - ${HOME}/.local/share/opencode:/home/cronagent/.local/share/opencode
+    # Named volume plus ro binds work as-is on macOS and Windows. On Linux
+    # the auth bind must stay writable, so run with your own ids, e.g.
+    # UID=$(id -u) GID=$(id -g) docker compose up -d, after uncommenting:
+    # user: "${UID:?}:${GID:?}"
+    restart: unless-stopped

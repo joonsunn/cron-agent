@@ -16,6 +16,7 @@ var envKeyRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 var envAllow = map[string]bool{
 	"DATA_DIR":  true,
 	"PORT":      true,
+	"HOST":      true,
 	"API_TOKEN": true,
 }
 

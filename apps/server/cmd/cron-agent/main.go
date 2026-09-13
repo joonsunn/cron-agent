@@ -27,6 +27,7 @@ var webDist embed.FS
 func main() {
 	dataDir := flag.String("data", "./data", "data dir for jobs, memory, db, logs")
 	port := flag.Int("port", 8080, "http port")
+	host := flag.String("host", "127.0.0.1", "http host (use 0.0.0.0 in containers)")
 	envFile := flag.String("env", "", "dotenv file (default: ./.env, then .env next to the binary)")
 	flag.Parse()
 
@@ -34,7 +35,7 @@ func main() {
 		log.Printf("env from %s", src)
 	}
 
-	cfg := config.Resolve(*dataDir, *port)
+	cfg := config.Resolve(*dataDir, *port, *host)
 
 	absData, err := filepath.Abs(cfg.DataDir)
 	if err != nil {
@@ -71,7 +72,7 @@ func main() {
 
 	webFS, webDir := resolveWeb()
 	srv := &api.Server{St: st, Sched: sched, DataDir: cfg.DataDir, Token: cfg.Token, WebDir: webDir, WebFS: webFS}
-	httpSrv := &http.Server{Addr: addr(cfg.Port), Handler: srv.Routes()}
+	httpSrv := &http.Server{Addr: addr(cfg.Host, cfg.Port), Handler: srv.Routes()}
 
 	go func() {
 		log.Printf("cron-agent on %s data=%s", httpSrv.Addr, cfg.DataDir)
@@ -86,7 +87,7 @@ func main() {
 	_ = httpSrv.Shutdown(shutCtx)
 }
 
-func addr(port int) string { return "127.0.0.1:" + itoa(port) }
+func addr(host string, port int) string { return host + ":" + itoa(port) }
 
 func itoa(n int) string {
 	if n == 0 {

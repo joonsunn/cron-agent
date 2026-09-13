@@ -25,9 +25,10 @@ func runID() string { return time.Now().UTC().Format("20060102-150405") }
 func (r *Runner) Execute(ctx context.Context, def jobs.Definition, trigger string) {
 	now := time.Now().UTC()
 	id := now.Format("20060102-150405.000000000")
-	logDir := filepath.Join(r.DataDir, "logs", def.Name)
-	_ = os.MkdirAll(logDir, 0o755)
-	logPath := filepath.Join(logDir, id+".log")
+	relPath := filepath.Join("logs", def.Name, id+".log")
+	logPath := filepath.Join(r.DataDir, relPath)
+
+	_ = os.MkdirAll(filepath.Dir(logPath), 0o755)
 
 	timeout := time.Duration(def.TimeoutMinutes) * time.Minute
 	runCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -41,14 +42,16 @@ func (r *Runner) Execute(ctx context.Context, def jobs.Definition, trigger strin
 		FinishedAt:  sql.NullString{},
 		ExitCode:    sql.NullInt64{},
 		Status:      "running",
-		LogPath:     logPath,
+		LogPath:     relPath,
 		Trigger:     trigger,
 	})
 	defer func() { _ = r.St.Release(context.Background(), def.Name) }()
 
 	promptRaw, err := os.ReadFile(filepath.Join(r.DataDir, def.PromptFile))
 	if err != nil {
-		r.finish(def.Name, id, logPath, 1, "error", fmt.Sprintf("prompt read failed: %v", err))
+		note := fmt.Sprintf("prompt read failed: %v", err)
+		_ = os.WriteFile(logPath, []byte(note+"\n"), 0o644)
+		r.finish(def.Name, id, logPath, 1, "error", note)
 		return
 	}
 

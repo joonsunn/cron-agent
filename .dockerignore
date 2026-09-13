@@ -1,0 +1,10 @@
+.git
+node_modules
+apps/web/node_modules
+apps/web/dist
+apps/server/cmd/cron-agent/webdist
+packages/*/node_modules
+bin
+data
+.env
+.DS_Store
