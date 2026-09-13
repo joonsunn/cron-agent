@@ -1,0 +1,13 @@
+data/*.db
+data/*.db-*
+data/logs/*
+data/jobs/*
+data/memory/*
+data/prompts/*
+.env
+apps/web/dist/
+apps/web/node_modules/
+node_modules/
+bin/
+cron-agent
+.DS_Store
