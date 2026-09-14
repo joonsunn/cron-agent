@@ -43,11 +43,11 @@ For a shipped binary, `cd` to the directory that should hold `data` and run it f
 ## Docker
 
 ```sh
-cp .env.example .env  # add OPENCODE_API_KEY if it is not already exported
+cp .env.example .env  # add OPENCODE_API_KEY only if you use key auth
 docker compose up -d --build
 ```
 
-This is the most portable way to run it. No Terminal window stays open, restarts survive reboot, and relative-path traps disappear. `OPENCODE_API_KEY` reads from your shell environment, so a `.zshenv` export flows through with no extra files. If the shell you run Compose from lacks it, put the key in the repo `.env` instead, Compose reads that file for every command, including `down`. State lives in `./data` with the same layout as `make dev`, so jobs go in `./data/jobs` and prompts in `./data/prompts`, seeded on first boot. Do not run `make dev` and Compose against the repo at the same time, both would schedule from the same dir. Your global opencode context mounts in read-only, with the dotfiles they symlink into riding along, while the auth dir stays writable. Logs via `docker compose logs`, stop with `docker compose down`. On Linux, prefix with `UID=$(id -u) GID=$(id -g)` and uncomment the `user:` line in `compose.yaml` so the auth bind stays writable.
+This is the most portable way to run it. No Terminal window stays open, restarts survive reboot, and relative-path traps disappear. Model auth has two paths: either export `OPENCODE_API_KEY` (a shell export flows through Compose interpolation with no extra files, otherwise put the key in the repo `.env`, which Compose reads for every command including `down`), or skip the key entirely and run `opencode auth login` on the host, picking GitHub Copilot and completing the device flow. The auth dir bind carries that login into the container and stays writable so token refresh keeps working. Whichever path you use, the model your config selects must be served by it: a Copilot login needs a Copilot model in your global or data `opencode.json`, otherwise runs fail at exec time and the server logs a boot hint when it sees no auth at all. State lives in `./data` with the same layout as `make dev`, so jobs go in `./data/jobs` and prompts in `./data/prompts`, seeded on first boot. Do not run `make dev` and Compose against the repo at the same time, both would schedule from the same dir. Your global opencode context mounts in read-only, with the dotfiles they symlink into riding along, while the auth dir stays writable. Logs via `docker compose logs`, stop with `docker compose down`. On Linux, prefix with `UID=$(id -u) GID=$(id -g)` and uncomment the `user:` line in `compose.yaml` so the auth bind stays writable.
 
 ## Layout
 

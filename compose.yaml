@@ -11,7 +11,10 @@ services:
       PORT: 8080
       HOST: 0.0.0.0
       API_TOKEN: ${API_TOKEN:-}
-      OPENCODE_API_KEY: ${OPENCODE_API_KEY:?set OPENCODE_API_KEY via export or repo .env (see README Docker section)}
+      # Optional. Leave unset when authenticating via `opencode auth login`
+      # (e.g. GitHub Copilot) instead: the auth dir bind below carries the
+      # host login into the container, and the container refreshes it in place.
+      OPENCODE_API_KEY: ${OPENCODE_API_KEY:-}
       HOME: /home/cronagent
     volumes:
       # Same ./data layout as `make dev`. Jobs go in ./data/jobs,

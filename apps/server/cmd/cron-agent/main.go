@@ -59,6 +59,9 @@ func main() {
 	if err := config.CheckOpencode(ctx); err != nil {
 		log.Fatalf("%v", err)
 	}
+	if !config.HasModelAuth() {
+		log.Printf("no model auth found: set OPENCODE_API_KEY or run `opencode auth login` (e.g. GitHub Copilot)")
+	}
 
 	st, err := store.Open(cfg.DataDir)
 	if err != nil {
