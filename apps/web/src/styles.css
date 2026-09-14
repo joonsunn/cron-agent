@@ -1,0 +1,516 @@
+/* cron-agent night watch: an observatory control desk for recurring agent jobs.
+   Tokens: abyss (page ink), panel (consoles), paper (signal text),
+   lamp (amber attention), tide (mint ok), ember (fail). */
+
+:root {
+  --abyss: #0b1728;
+  --abyss-deep: #071120;
+  --panel: #14253d;
+  --panel-raised: #1a2f4d;
+  --line: rgb(147 164 188 / 0.18);
+  --line-strong: rgb(147 164 188 / 0.32);
+  --paper: #e9eff6;
+  --dim: rgb(233 239 246 / 0.64);
+  --faint: rgb(233 239 246 / 0.42);
+  --lamp: #ffb224;
+  --tide: #57d9a3;
+  --ember: #ff6b4a;
+  --display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--abyss-deep);
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 500px at 85% -10%, rgb(87 217 163 / 0.07), transparent 60%),
+    radial-gradient(900px 480px at 10% 0%, rgb(255 178 36 / 0.08), transparent 55%),
+    var(--abyss);
+  color: var(--paper);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgb(255 178 36 / 0.35);
+}
+
+:focus-visible {
+  outline: 2px solid var(--lamp);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.desk {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px 64px;
+}
+
+/* Sticky instrument header */
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: 0 -20px;
+  padding: 16px 20px 0;
+  background: color-mix(in srgb, var(--abyss) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.masthead-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.wordmark {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: 0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wordmark-sub {
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.lamp-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--tide);
+  box-shadow: 0 0 10px rgb(87 217 163 / 0.9);
+}
+
+.lamp-dot-warn {
+  background: var(--lamp);
+  box-shadow: 0 0 10px rgb(255 178 36 / 0.9);
+}
+
+.lamp-dot-bad {
+  background: var(--ember);
+  box-shadow: 0 0 10px rgb(255 107 74 / 0.9);
+}
+
+.fleetline {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--dim);
+  margin: 6px 0 12px;
+}
+
+/* Signature: the tick rail. The page breathes at the scheduler's 10s cadence. */
+.tickrail {
+  height: 3px;
+  background: rgb(147 164 188 / 0.16);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.tickrail-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--lamp), rgb(255 178 36 / 0.35));
+  border-radius: 2px;
+}
+
+.tickrail-flash {
+  animation: tickflash 0.6s ease-out;
+}
+
+@keyframes tickflash {
+  from {
+    box-shadow: 0 0 12px rgb(255 178 36 / 0.9);
+  }
+  to {
+    box-shadow: none;
+  }
+}
+
+/* Sections */
+.desksection {
+  margin-top: 36px;
+}
+
+.sectionhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.sectionhead h2 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin: 0;
+}
+
+.sectionhead-note {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* Job consoles */
+.consoles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.console {
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.console::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--tide);
+}
+
+.console-paused::before {
+  background: var(--faint);
+}
+
+.console-attention::before {
+  background: var(--ember);
+}
+
+.console-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.console-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.console-state {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  flex: none;
+}
+
+.console-state-bad {
+  color: var(--ember);
+}
+
+.console-state-dim {
+  color: var(--faint);
+}
+
+/* Cron vernacular set large: the instrument's own language as graphic. */
+.cronstrip {
+  font-family: var(--mono);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  background: rgb(7 17 32 / 0.6);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.console-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  color: var(--dim);
+}
+
+.console-meta dt {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: 0 0 2px;
+}
+
+.console-meta dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--paper);
+}
+
+.nextrun-hot {
+  color: var(--lamp);
+}
+
+.attention-flag {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--abyss-deep);
+  background: var(--ember);
+  border-radius: 5px;
+  padding: 5px 9px;
+  font-weight: 600;
+}
+
+.console-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+/* Buttons */
+.btn {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.btn:hover {
+  border-color: var(--lamp);
+  background: rgb(255 178 36 / 0.1);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: var(--lamp);
+  border-color: var(--lamp);
+  color: #231600;
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: #ffc14d;
+  border-color: #ffc14d;
+}
+
+/* Run ledger: the tape. */
+.ledger-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: rgb(7 17 32 / 0.55);
+}
+
+.ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.ledger th {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ledger td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: baseline;
+}
+
+.ledger tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ledger tbody tr:hover {
+  background: rgb(147 164 188 / 0.06);
+}
+
+.ledger .mono {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.stamp {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 5px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.stamp-ok {
+  color: var(--tide);
+  border-color: rgb(87 217 163 / 0.4);
+  background: rgb(87 217 163 / 0.08);
+}
+
+.stamp-running {
+  color: var(--lamp);
+  border-color: rgb(255 178 36 / 0.45);
+  background: rgb(255 178 36 / 0.08);
+}
+
+.stamp-bad {
+  color: var(--ember);
+  border-color: rgb(255 107 74 / 0.45);
+  background: rgb(255 107 74 / 0.08);
+}
+
+.stamp-mute {
+  color: var(--dim);
+  border-color: var(--line-strong);
+}
+
+.loglink {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--lamp);
+  text-underline-offset: 3px;
+}
+
+.loglink:hover {
+  color: #ffc14d;
+}
+
+/* Empty + error states give direction, not mood. */
+.empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  color: var(--dim);
+}
+
+.empty p {
+  margin: 0 0 8px;
+}
+
+.empty code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--paper);
+  background: rgb(7 17 32 / 0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.alert {
+  border: 1px solid rgb(255 107 74 / 0.5);
+  background: rgb(255 107 74 / 0.1);
+  color: var(--paper);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.filterbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filterbar .mono {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+@media (max-width: 640px) {
+  .wordmark {
+    font-size: 21px;
+  }
+
+  .cronstrip {
+    font-size: 16px;
+  }
+
+  .ledger th:nth-child(4),
+  .ledger td:nth-child(4) {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tickrail-flash {
+    animation: none;
+  }
+
+  .btn {
+    transition: none;
+  }
+}
