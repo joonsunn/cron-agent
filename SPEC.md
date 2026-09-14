@@ -54,7 +54,9 @@ A fresh data dir is seeded on boot from templates embedded in the binary: exampl
 
 Ticker wakes every 10 seconds. It reloads job files, computes next run with a cron parser, and compares against SQLite lease state.
 
-A job fires only when due, enabled, and unlocked. The runner claims a lease before exec so two ticks never double run. Overlapping runs are skipped and logged as skipped.
+A job fires only when due, enabled, and unlocked. The runner claims a lease before exec so two ticks never double run. Overlapping runs of the same job are skipped and logged as skipped.
+
+At most 3 runs execute at once by default, overridable by `--concurrent` flag or `MAX_CONCURRENT` env. Excess firings wait in an in-memory FIFO queue instead of starting new processes. A job that fires again while already queued or running reports busy instead of stacking a duplicate.
 
 Timeout kills the `opencode` child and marks the run timed out. Failures record exit code and last 100 lines for the dashboard. Three consecutive failures surface a badge on the dashboard.
 

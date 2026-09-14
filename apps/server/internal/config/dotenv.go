@@ -14,10 +14,11 @@ var envKeyRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 // Anything else in the file is ignored so a stray PATH line cannot
 // rewire the process the server shells opencode from.
 var envAllow = map[string]bool{
-	"DATA_DIR":  true,
-	"PORT":      true,
-	"HOST":      true,
-	"API_TOKEN": true,
+	"DATA_DIR":       true,
+	"PORT":           true,
+	"HOST":           true,
+	"API_TOKEN":      true,
+	"MAX_CONCURRENT": true,
 }
 
 // LoadDotEnv loads the first dotenv file found and returns its path.

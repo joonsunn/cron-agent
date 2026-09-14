@@ -15,7 +15,12 @@ type Config struct {
 	Port    int
 	Host    string
 	Token   string
+	// MaxConcurrent caps simultaneous agent runs. Defaults to 3.
+	MaxConcurrent int
 }
+
+// DefaultMaxConcurrent matches the scheduler default when no value is set.
+const DefaultMaxConcurrent = 3
 
 func Resolve(dataDir string, port int, host string) Config {
 	if v := os.Getenv("DATA_DIR"); v != "" && dataDir == "./data" {
@@ -29,7 +34,21 @@ func Resolve(dataDir string, port int, host string) Config {
 	if v := os.Getenv("HOST"); v != "" && host == "127.0.0.1" {
 		host = v
 	}
-	return Config{DataDir: dataDir, Port: port, Host: host, Token: os.Getenv("API_TOKEN")}
+	return Config{DataDir: dataDir, Port: port, Host: host, Token: os.Getenv("API_TOKEN"), MaxConcurrent: EffectiveMaxConcurrent(0)}
+}
+
+// EffectiveMaxConcurrent resolves the run cap from an explicit value with
+// MAX_CONCURRENT env override. Non-positive results fall back to the default.
+func EffectiveMaxConcurrent(explicit int) int {
+	if v := os.Getenv("MAX_CONCURRENT"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	if explicit > 0 {
+		return explicit
+	}
+	return DefaultMaxConcurrent
 }
 
 func CheckOpencode(ctx context.Context) error {

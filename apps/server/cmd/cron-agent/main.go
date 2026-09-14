@@ -28,6 +28,7 @@ func main() {
 	dataDir := flag.String("data", "./data", "data dir for jobs, memory, db, logs")
 	port := flag.Int("port", 8080, "http port")
 	host := flag.String("host", "127.0.0.1", "http host (use 0.0.0.0 in containers)")
+	concurrent := flag.Int("concurrent", 3, "max simultaneous agent runs (or MAX_CONCURRENT env)")
 	envFile := flag.String("env", "", "dotenv file (default: ./.env, then .env next to the binary)")
 	flag.Parse()
 
@@ -70,7 +71,9 @@ func main() {
 	defer st.Close()
 
 	r := &runner.Runner{DataDir: cfg.DataDir, St: st}
+	cfg.MaxConcurrent = config.EffectiveMaxConcurrent(*concurrent)
 	sched := scheduler.New(cfg.DataDir, st, r)
+	sched.MaxConcurrent = cfg.MaxConcurrent
 	go sched.Start(ctx)
 
 	webFS, webDir := resolveWeb()

@@ -28,7 +28,7 @@ make test    # Go tests plus web typecheck
 
 ## How it works
 
-A ticker wakes every 10 seconds, reloads job files, and fires due jobs with a single-writer lease, so overlaps skip instead of stacking. The runner executes `opencode run` with the job prompt, streams output to a per-run log, and refreshes the job STATUS.md on completion.
+A ticker wakes every 10 seconds, reloads job files, and fires due jobs with a single-writer lease, so overlaps of the same job skip instead of stacking. At most 3 runs execute at once by default, and excess firings wait in a FIFO queue instead of starting new processes. The runner executes `opencode run` with the job prompt, streams output to a per-run log, and refreshes the job STATUS.md on completion.
 
 Persistence is split by purpose. Markdown under `data/memory` holds live state the next run reads. SQLite holds append-only run history the dashboard queries. Job definitions and prompts are plain files, safe to version.
 
@@ -36,7 +36,7 @@ Headless runs cannot approve anything, and an `ask` permission hangs forever wai
 
 ## Configuration
 
-Copy `.env.example` to `.env` at the repo root for local dev. Only `DATA_DIR`, `PORT`, `HOST`, and `API_TOKEN` load. Precedence is make flags, then `.env`, then defaults. Never commit `.env`.
+Copy `.env.example` to `.env` at the repo root for local dev. Only `DATA_DIR`, `PORT`, `HOST`, `API_TOKEN`, and `MAX_CONCURRENT` load. Precedence is make flags, then `.env`, then defaults. Never commit `.env`.
 
 For a shipped binary, `cd` to the directory that should hold `data` and run it from the terminal, or pass `--data` with an absolute path. Double-clicking the binary on macOS starts it in your home folder, so state would land in `~/data`. To keep double-click working, copy `bin/cron-agent.command` next to the binary and open that instead. It cds to its own folder first, then execs the binary. The dashboard is embedded in the binary, so only `data` and `.env` live beside it. Place a `.env` next to the binary, or pass `--env <path>`. The binary also reads `./.env` from its working dir. Exported env vars always win.
 

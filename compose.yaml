@@ -11,6 +11,7 @@ services:
       PORT: 8080
       HOST: 0.0.0.0
       API_TOKEN: ${API_TOKEN:-}
+      MAX_CONCURRENT: ${MAX_CONCURRENT:-}
       # Optional. Leave unset when authenticating via `opencode auth login`
       # (e.g. GitHub Copilot) instead: the auth dir bind below carries the
       # host login into the container, and the container refreshes it in place.
