@@ -5,10 +5,10 @@ services:
     build: .
     image: cron-agent:latest
     ports:
-      - "${PORT:-8080}:8080"
+      - "${PORT:-14141}:14141"
     environment:
       DATA_DIR: /data
-      PORT: 8080
+      PORT: 14141
       HOST: 0.0.0.0
       API_TOKEN: ${API_TOKEN:-}
       MAX_CONCURRENT: ${MAX_CONCURRENT:-}
@@ -34,3 +34,7 @@ services:
     # UID=$(id -u) GID=$(id -g) docker compose up -d, after uncommenting:
     # user: "${UID:?}:${GID:?}"
     restart: unless-stopped
+    # SIGTERM shutdown now waits for in-flight runs to record interrupted
+    # (up to ~15s). Keep grace above that so `up --build` never SIGKILLs
+    # mid-write and leaves a stuck running row behind.
+    stop_grace_period: 25s

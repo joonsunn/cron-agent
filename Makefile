@@ -3,7 +3,7 @@ WEB_DIR := apps/web
 BIN := bin/cron-agent
 DATA_DIR ?= ./data
 DATA_ABS := $(abspath $(DATA_DIR))
-PORT ?= 8080
+PORT ?= 14141
 
 -include .env
 export

@@ -37,6 +37,9 @@ type Scheduler struct {
 	running int
 	pending []pendingJob
 	queued  map[string]bool
+
+	wg      sync.WaitGroup
+	stopCtx context.Context
 }
 
 func New(dataDir string, st *store.Store, r *runner.Runner) *Scheduler {
@@ -64,7 +67,24 @@ func (s *Scheduler) PendingDepth() int {
 	return len(s.pending)
 }
 
+// Wait blocks until all executing runs finish. Call on shutdown after
+// cancelling the context given to Start so in-flight `opencode` children
+// are interrupted and their outcomes recorded.
+func (s *Scheduler) Wait() { s.wg.Wait() }
+
+// execBase binds a run to the server lifetime. Request contexts die with
+// the HTTP handler, so Trigger must not propagate them into the background
+// run. The server context from Start cancels on SIGINT/SIGTERM and still
+// interrupts the child.
+func (s *Scheduler) execBase(ctx context.Context) context.Context {
+	if s.stopCtx != nil {
+		return s.stopCtx
+	}
+	return context.WithoutCancel(ctx)
+}
+
 func (s *Scheduler) Start(ctx context.Context) {
+	s.stopCtx = ctx
 	t := time.NewTicker(10 * time.Second)
 	defer t.Stop()
 	s.tick(ctx)
@@ -175,21 +195,31 @@ func (s *Scheduler) dispatch(ctx context.Context, def jobs.Definition, trigger s
 		s.abortSlot()
 		return "", errBusy(def.Name)
 	}
-	s.goExecute(def, trigger)
+	s.goExecute(ctx, def, trigger)
 	return "started", nil
 }
 
-func (s *Scheduler) goExecute(def jobs.Definition, trigger string) {
+func (s *Scheduler) goExecute(ctx context.Context, def jobs.Definition, trigger string) {
 	exec := s.execFn
+	// Bind the run to the server lifetime, not the caller lifetime. Trigger
+	// arrives with an HTTP request context that net/http cancels as soon as
+	// the handler returns, which previously killed every manual run
+	// immediately and logged it as interrupted. Tick already passes the
+	// server context, so both paths converge on execBase.
+	base := s.execBase(ctx)
 	if exec == nil && s.R != nil {
 		r := s.R
-		exec = func(d jobs.Definition, t string) { r.Execute(context.Background(), d, t) }
+		// Pass the server context so SIGTERM cancels the `opencode` child
+		// and Runner records interrupted instead of orphaning the run.
+		exec = func(d jobs.Definition, t string) { r.Execute(base, d, t) }
 	}
 	if exec == nil {
 		s.abortSlot()
 		return
 	}
+	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		exec(def, trigger)
 		s.onRunDone()
 	}()
@@ -214,9 +244,14 @@ func (s *Scheduler) onRunDone() {
 
 // pump starts queued jobs FIFO while slots are free. It claims the DB lease
 // at start time so the lease covers the run, not the queue wait. Entries for
-// paused jobs are dropped and their leases released.
+// paused jobs are dropped and their leases released. Pump never starts new
+// work once the server context is cancelled, so shutdown drains instead of
+// growing.
 func (s *Scheduler) pump() {
 	for {
+		if s.stopCtx != nil && s.stopCtx.Err() != nil {
+			return
+		}
 		s.mu.Lock()
 		if s.running >= s.limit() || len(s.pending) == 0 {
 			s.mu.Unlock()
@@ -241,7 +276,7 @@ func (s *Scheduler) pump() {
 			s.mu.Unlock()
 			continue
 		}
-		s.goExecute(next.def, next.trigger)
+		s.goExecute(s.execBase(context.Background()), next.def, next.trigger)
 		return
 	}
 }

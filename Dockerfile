@@ -29,9 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 	&& mkdir -p /data /app /home/cronagent/.local/share /home/cronagent/.local/state /home/cronagent/.cache \
 	&& chown -R cronagent:cronagent /data /app /home/cronagent
 COPY --from=server /out/cron-agent /usr/local/bin/cron-agent
-ENV DATA_DIR=/data PORT=8080 HOST=0.0.0.0 HOME=/home/cronagent
+ENV DATA_DIR=/data PORT=14141 HOST=0.0.0.0 HOME=/home/cronagent
 WORKDIR /app
-EXPOSE 8080
+EXPOSE 14141
 USER cronagent
-HEALTHCHECK --interval=30s --timeout=5s CMD curl -sf http://127.0.0.1:8080/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s CMD curl -sf http://127.0.0.1:14141/api/health || exit 1
 CMD ["cron-agent"]

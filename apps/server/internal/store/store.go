@@ -149,6 +149,48 @@ func (s *Store) Release(ctx context.Context, name string) error {
 	return err
 }
 
+// ReconcileInterrupted marks runs left in "running" by a dead process as
+// interrupted and releases all leases. Call once on boot: any lock held at
+// boot belongs to a process that no longer exists (single binary, one DB),
+// and any "running" row can never finish on its own because only the dead
+// owner called FinishRun. Returns the number of runs marked.
+func (s *Store) ReconcileInterrupted(ctx context.Context, now string) (int, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT id, job FROM runs WHERE status='running'`)
+	if err != nil {
+		return 0, err
+	}
+	type stale struct{ id, job string }
+	var stales []stale
+	for rows.Next() {
+		var st stale
+		if err := rows.Scan(&st.id, &st.job); err != nil {
+			_ = rows.Close()
+			return 0, err
+		}
+		stales = append(stales, st)
+	}
+	_ = rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	for _, st := range stales {
+		if _, err := s.db.ExecContext(ctx,
+			`UPDATE runs SET status='interrupted', exit_code=130, finished_at=? WHERE id=? AND status='running'`,
+			now, st.id); err != nil {
+			return len(stales), err
+		}
+		var cur int
+		_ = s.db.QueryRowContext(ctx, `SELECT consecutive_failures FROM jobs WHERE name=?`, st.job).Scan(&cur)
+		_, _ = s.db.ExecContext(ctx,
+			`UPDATE jobs SET last_status='interrupted', last_exit=130, consecutive_failures=? WHERE name=?`,
+			cur+1, st.job)
+	}
+	if _, err := s.db.ExecContext(ctx, `UPDATE jobs SET locked_until='' WHERE locked_until!=''`); err != nil {
+		return len(stales), err
+	}
+	return len(stales), nil
+}
+
 func (s *Store) Locked(ctx context.Context, name string) bool {
 	var until string
 	if err := s.db.QueryRowContext(ctx, `SELECT locked_until FROM jobs WHERE name=?`, name).Scan(&until); err != nil {

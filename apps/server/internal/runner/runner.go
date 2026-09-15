@@ -34,7 +34,10 @@ func (r *Runner) Execute(ctx context.Context, def jobs.Definition, trigger strin
 	runCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	_ = r.St.InsertRun(runCtx, store.Run{
+	// DB writes use a detached context so a SIGTERM racing the run still
+	// records the outcome instead of failing on a cancelled context.
+	dbCtx := context.Background()
+	_ = r.St.InsertRun(dbCtx, store.Run{
 		ID:          id,
 		Job:         def.Name,
 		ScheduledAt: now.Format(time.RFC3339),
@@ -71,10 +74,18 @@ func (r *Runner) Execute(ctx context.Context, def jobs.Definition, trigger strin
 	runErr := cmd.Run()
 	status := "ok"
 	code := 0
-	if runCtx.Err() == context.DeadlineExceeded {
+	switch {
+	case runCtx.Err() == context.DeadlineExceeded:
 		status = "timeout"
 		code = 124
-	} else if runErr != nil {
+	case ctx.Err() == context.Canceled || runCtx.Err() == context.Canceled:
+		// Host shutdown/restart killed the run before it could finish.
+		// Recorded as interrupted so boot reconciliation and the
+		// dashboard distinguish it from a command failure.
+		status = "interrupted"
+		code = 130
+		_, _ = logFile.WriteString("\n[interrupted: host shutdown/restart]\n")
+	case runErr != nil:
 		status = "error"
 		if ee, ok := runErr.(*exec.ExitError); ok {
 			code = ee.ExitCode()

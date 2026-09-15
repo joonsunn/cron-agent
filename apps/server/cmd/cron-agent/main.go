@@ -26,7 +26,7 @@ var webDist embed.FS
 
 func main() {
 	dataDir := flag.String("data", "./data", "data dir for jobs, memory, db, logs")
-	port := flag.Int("port", 8080, "http port")
+	port := flag.Int("port", 14141, "http port")
 	host := flag.String("host", "127.0.0.1", "http host (use 0.0.0.0 in containers)")
 	concurrent := flag.Int("concurrent", 3, "max simultaneous agent runs (or MAX_CONCURRENT env)")
 	envFile := flag.String("env", "", "dotenv file (default: ./.env, then .env next to the binary)")
@@ -70,6 +70,15 @@ func main() {
 	}
 	defer st.Close()
 
+	// A previous process may have died mid-run (docker rebuild, SIGKILL,
+	// crash). Its runs stay status='running' forever and its lease blocks
+	// retries, so reclaim both before accepting new work.
+	if n, err := st.ReconcileInterrupted(context.Background(), time.Now().UTC().Format(time.RFC3339)); err != nil {
+		log.Printf("reconcile: %v", err)
+	} else if n > 0 {
+		log.Printf("reconcile: marked %d interrupted run(s) from previous shutdown", n)
+	}
+
 	r := &runner.Runner{DataDir: cfg.DataDir, St: st}
 	cfg.MaxConcurrent = config.EffectiveMaxConcurrent(*concurrent)
 	sched := scheduler.New(cfg.DataDir, st, r)
@@ -88,9 +97,19 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	shutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	_ = httpSrv.Shutdown(shutCtx)
+	// Server ctx cancellation already interrupted in-flight `opencode`
+	// children. Wait so Runner records interrupted instead of leaving
+	// status='running' behind for the next boot to reconcile.
+	waitDone := make(chan struct{})
+	go func() { sched.Wait(); close(waitDone) }()
+	select {
+	case <-waitDone:
+	case <-shutCtx.Done():
+		log.Printf("shutdown: giving up waiting for runs")
+	}
 }
 
 func addr(host string, port int) string { return host + ":" + itoa(port) }

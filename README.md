@@ -16,7 +16,7 @@ make setup
 make dev
 ```
 
-Open the dashboard at `http://localhost:5173`. The API runs on port 8080.
+Open the dashboard at `http://localhost:5173`. The API runs on port 14141.
 
 The example job ships disabled, so setup spends no model calls. To schedule real work, copy `data/jobs/example.yaml` to a new file, point it at a prompt in `data/prompts`, and set `enabled: true`. Job files apply on the next 10s tick, no restart needed.
 
